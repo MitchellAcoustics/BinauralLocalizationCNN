@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib
-matplotlib.use('Agg') 
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 import bootstrapped.bootstrap as bs
@@ -56,9 +56,11 @@ flatten = lambda l: [item for sublist in l for item in sublist]
 
 convert_from_numpy = lambda x: x[0] if len(x.tolist()) ==1 else x.tolist()
 
-val_in_list_fuzzy = lambda val,val_list,fuzzy_mult: any(
-    [element*(1-fuzzy_mult) <= val <= element*(1+fuzzy_mult) for
-     element in val_list])
+val_in_list_fuzzy = lambda val, val_list, fuzzy_mult: any(
+    element * (1 - fuzzy_mult) <= val <= element * (1 + fuzzy_mult)
+    for element in val_list
+)
+
 
 val_match_target_fuzzy = lambda val,target,fuzzy_mult:\
     val*(1-fuzzy_mult) <= target <= val*(1+fuzzy_mult)
@@ -87,13 +89,12 @@ def group_all_but(dataframe,target_var,grouping_var='arch_index'):
     excluded = [grouping_var, target_var]
     other_vars = [x for x in dataframe.columns if x not in excluded]
     dataframe_arrays_removed = dataframe.applymap(tuplizer)
-    dataframe_mean = (dataframe_arrays_removed.groupby(other_vars)[target_var]
+    return (dataframe_arrays_removed.groupby(other_vars)[target_var]
                       .agg([np.mean,'count','std'])
                       .rename(columns={'mean':target_var+'_mean',
                                        'std': target_var+'_std',
                                        'count':target_var+'_count'})
                       .reset_index())
-    return dataframe_mean
 
 def aggregate_and_filter(dataframe,target_var,grouping_var_list):
     '''
@@ -112,13 +113,12 @@ def aggregate_and_filter(dataframe,target_var,grouping_var_list):
         columns in the grouping varibles and the agrregate statistics over the
         target variable
     '''
-    dataframe_mean = (dataframe.groupby(grouping_var_list)[target_var]
+    return (dataframe.groupby(grouping_var_list)[target_var]
                       .agg([np.mean,'count','std'])
                       .rename(columns={'mean':target_var+'_mean',
                                        'std': target_var+'_std',
                                        'count':target_var+'_count'})
                       .reset_index())
-    return dataframe_mean
 
 def bootstrap_pandas_by_group(group):
     '''
@@ -176,7 +176,7 @@ def add_fold_offset(row):
     if 'azim' in row:
         if (18 < row['azim'] < 54):
             return abs(row['predicted_folded'] + 18)
-        elif row['azim'] == 18 or row['azim'] == 54:
+        elif row['azim'] in [18, 54]:
             return row['predicted']
         else:
             return (18 -row['predicted_folded'])%72
@@ -192,10 +192,7 @@ def add_fold_offset(row):
 
 def swap_folded_vals(folded_vals,row):
     pdb.set_trace()
-    if row['azim'] == 18 or row['azim'] == 54:
-        return row['predicted']
-    else:
-        return folded_vals[row.name] 
+    return row['predicted'] if row['azim'] in [18, 54] else folded_vals[row.name] 
 
 def make_dataframe(regex,fold_data=False,elevation_predictions=False,recenter_folded_data=True):
     np_data_array = getDatafilenames(regex)
@@ -210,7 +207,7 @@ def make_dataframe(regex,fold_data=False,elevation_predictions=False,recenter_fo
         pred = np.array([x[:72] for x in np_data[:,0]]).argmax(axis=1)
         folded_vals = np.array([fold_locations_full_dist_5deg(x[:72]) for x in np_data[:,0]]).argmax(axis=1)
         if elevation_predictions:
-            full_pred = np.array([x for x in np_data[:,0]]).argmax(axis=1)
+            full_pred = np.array(list(np_data[:,0])).argmax(axis=1)
             np_data[:,0] = full_pred
         else:
             np_data[:,0] = pred
@@ -235,8 +232,7 @@ def dataframe_from_pickle(filename):
         cols = ["Azim","ITD"]
     else:
         raise ValueError("Filename is not an ITD or ILD value pickle")
-    df = pd.DataFrame(data=np.array(unpickled_list),columns=cols)
-    return df
+    return pd.DataFrame(data=np.array(unpickled_list),columns=cols)
 
 def get_arch_indicies(regex):
     fnames = glob(regex)
@@ -256,52 +252,87 @@ def get_arch_indicies(regex):
 
 def get_cols(regex):
     if "joint" in regex:
-        var_order = ["azim" , "elev",
+        return ["azim" , "elev",
                      "ITD", "ILD", "freq"]
     elif "man-added" in regex:
-        var_order = ["azim","freq"]
-        if "ITD_ILD" in regex:
-            var_order = ["azim","elev","freq"]
+        return ["azim","elev","freq"] if "ITD_ILD" in regex else ["azim","freq"]
     elif "middlebrooks_wrightman" in regex:
-        var_order = ["azim", "elev", "ILD","ITD","low_cutoff","high_cutoff","subject_num", "noise_idx"]
+        return [
+            "azim",
+            "elev",
+            "ILD",
+            "ITD",
+            "low_cutoff",
+            "high_cutoff",
+            "subject_num",
+            "noise_idx",
+        ]
+
     elif "CIPIC" in regex:
-        var_order = ["azim", "elev", "subject_num", "noise_idx"]
+        return ["azim", "elev", "subject_num", "noise_idx"]
     elif "HRIR_direct" in regex:
-        var_order = ["azim", "elev", "noise_idx", "smooth_factor"]
+        return ["azim", "elev", "noise_idx", "smooth_factor"]
     elif "samTone" in regex:
-        var_order = ["carrier_freq", "modulation_freq",
+        return ["carrier_freq", "modulation_freq",
                      "carrier_delay", "modulation_delay",
                      "flipped"]
     elif "transposed" in regex:
-        var_order = ["carrier_freq", "modulation_freq",
+        return ["carrier_freq", "modulation_freq",
                      "delay", "flipped"]
     elif "precedence" in regex and "multiAzim" in regex:
-        var_order = ["delay","azim","start_sample",
+        return ["delay","azim","start_sample",
                      "lead_level","lag_level", "flipped"]
     elif "precedence" in regex:
-        var_order = ["delay","start_sample",
+        return ["delay","start_sample",
                      "lead_level","lag_level", "flipped"]
     elif "nsynth" in regex:
-        var_order = ["azim","elev","room_geometry", "instrument_source_str", "room_materials", "sample_rate", "qualities", "filename", "instrument_family_str", "pitch", "note_str", "velocity", "instrument", "instrument_family", "note", "instrument_str", "instrument_source", "head_location"]
+        return [
+            "azim",
+            "elev",
+            "room_geometry",
+            "instrument_source_str",
+            "room_materials",
+            "sample_rate",
+            "qualities",
+            "filename",
+            "instrument_family_str",
+            "pitch",
+            "note_str",
+            "velocity",
+            "instrument",
+            "instrument_family",
+            "note",
+            "instrument_str",
+            "instrument_source",
+            "head_location",
+        ]
+
     elif "bandpass" in regex:
-        var_order = ["azim","elev", "bandwidth",
+        return ["azim","elev", "bandwidth",
                      "center_freq"]
     elif ("binaural_recorded" in regex) and ("speech_label" in regex):
-        var_order = ["azim", "elev","speech"]
+        return ["azim", "elev","speech"]
     elif "binaural_recorded" in regex:
-        var_order = ["azim", "elev"]
+        return ["azim", "elev"]
     elif ("testset" in regex) and ("convolved" in regex):
-        var_order = ["azim", "elev"]
+        return ["azim", "elev"]
     else:
-        var_order = ["azim","freq"]
-    return var_order
+        return ["azim","freq"]
         
 
 def get_order(regex,data):
     var_order = get_cols(regex)
-    key_swap_indicies = [next((idx for idx,pos in enumerate(var_order) if pos in key.split('/')), None)
-                         for key in data]
-    return key_swap_indicies
+    return [
+        next(
+            (
+                idx
+                for idx, pos in enumerate(var_order)
+                if pos in key.split('/')
+            ),
+            None,
+        )
+        for key in data
+    ]
 
 def reshape_and_filter(temp_array,label_order):
     prob = np.vstack(temp_array[:,0])
@@ -309,24 +340,22 @@ def reshape_and_filter(temp_array,label_order):
         #This deals with testsets metadata still in tuples because vstack
         #dealts with things incorrectly if all elements are arrays
         metadata = np.array(pd.DataFrame({"meta":temp_array[:,1]})['meta']
-                            .apply(lambda x:tuple([m[0] for m in x])).tolist())
+                            .apply(lambda x: tuple(m[0] for m in x)).tolist())
     else:
         metadata = np.vstack(temp_array[:,1])
-    if len(label_order) != 0:
-        target_slice_arr = []
-        src_slice_arr = []
-        for src_idx,target_idx in enumerate(label_order):
-            if target_idx is not None:
-                target_slice_arr.append(target_idx)
-                src_slice_arr.append(src_idx)
-        slice_array = [idx for idx in label_order if idx is not None]
-        metadata_new = np.empty((metadata.shape[0],len(src_slice_arr)),
-                                dtype=metadata.dtype)
-        metadata_new[:,target_slice_arr] = metadata[:,src_slice_arr]
-        array = np.array([[prob,*labels] for prob,labels in zip(prob,metadata_new)])
-    else:
-        array = temp_array
-    return array
+    if len(label_order) == 0:
+        return temp_array
+    target_slice_arr = []
+    src_slice_arr = []
+    for src_idx,target_idx in enumerate(label_order):
+        if target_idx is not None:
+            target_slice_arr.append(target_idx)
+            src_slice_arr.append(src_idx)
+    slice_array = [idx for idx in label_order if idx is not None]
+    metadata_new = np.empty((metadata.shape[0],len(src_slice_arr)),
+                            dtype=metadata.dtype)
+    metadata_new[:,target_slice_arr] = metadata[:,src_slice_arr]
+    return np.array([[prob,*labels] for prob,labels in zip(prob,metadata_new)])
 
 def allbut(*names):
     names = set(names)
@@ -349,9 +378,7 @@ def get_folded_label_idx(azim_label):
         reversal_point = round(math.degrees(math.acos(-math.cos(math.radians((azim_degrees+azim_degrees//180*180)%360))))+azim_degrees//180*180)
     else:
         reversal_point =  azim_degrees
-    #folded = fold_locations(averages)
-    reversal_idx = int((reversal_point - 90)/10)
-    return reversal_idx
+    return int((reversal_point - 90)/10)
 
 def get_folded_label_idx_5deg(azim_label):
     azim_degrees = azim_label*5
@@ -359,9 +386,7 @@ def get_folded_label_idx_5deg(azim_label):
         reversal_point = round(math.degrees(math.acos(-math.cos(math.radians((azim_degrees+azim_degrees//180*180)%360))))+azim_degrees//180*180)
     else:
         reversal_point =  azim_degrees
-    #folded = fold_locations(averages)
-    reversal_idx = int((reversal_point - 90)/5)
-    return reversal_idx
+    return int((reversal_point - 90)/5)
 
 def fold_locations(inputs_cond):
     bottom = inputs_cond[10:27]
@@ -413,7 +438,7 @@ def calc_CI(distributions,single_entry=False,stat_func=bs_stats.mean,iteration_b
 
 
 def plot_cond_prob_azim(batch_conditionals):
-    x_axis = [i for i in range(-180,180,10)]
+    x_axis = list(range(-180,180,10))
     fig, ax = plt.subplots(nrows = 6, ncols = 6, figsize=(30,30))
     for azim in range(36):
         a = [i[0][:36]/sum(i[0][:36]) for i in batch_conditionals if i[1] == azim] 
@@ -438,7 +463,7 @@ def plot_cond_prob_azim(batch_conditionals):
                         wspace=0.65)
 
 def plot_cond_prob_azim_folded(batch_conditionals):
-    x_axis = [i for i in range(90,280,10)]
+    x_axis = list(range(90,280,10))
     fig, ax = plt.subplots(nrows = 6, ncols = 6, figsize=(30,30))
     for azim in range(36):
         a = [i[0][:36]/sum(i[0][:36]) for i in batch_conditionals if i[1] == azim] 

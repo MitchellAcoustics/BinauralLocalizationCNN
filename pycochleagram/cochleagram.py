@@ -108,11 +108,7 @@ def cochleagram(signal, sr, n, low_lim, hi_lim, sample_factor,
       raise ValueError('`hi_lim` must be an int; ignore with `strict`=False')
 
   ret_mode = ret_mode.lower()
-  if ret_mode == 'all':
-    ret_all_sb = True
-  else:
-    ret_all_sb = False
-
+  ret_all_sb = ret_mode == 'all'
   # verify n is positive
   if n <= 0:
     raise ValueError('number of filters `n` must be positive; found: %s' % n)
@@ -153,7 +149,7 @@ def cochleagram(signal, sr, n, low_lim, hi_lim, sample_factor,
 
     temp_signal_flat = sb.reshape_signal_canonical(batch_signal[i, ...])
 
-    if ret_mode == 'envs' or ret_mode == 'all':
+    if ret_mode in ['envs', 'all']:
       temp_sb = sb.generate_subband_envelopes_fast(temp_signal_flat, filts,
           padding_size=padding_size, fft_mode=fft_mode, debug_ret_all=ret_all_sb)
     elif ret_mode == 'subband':
@@ -180,12 +176,7 @@ def cochleagram(signal, sr, n, low_lim, hi_lim, sample_factor,
 
   sb_out = sb_out.squeeze()
   if ret_mode == 'all':
-    out_dict = {}
-    # add all local variables to out_dict
-    for k in dir():
-      if k != 'out_dict':
-        out_dict[k] = locals()[k]
-    return out_dict
+    return {k: locals()[k] for k in dir() if k != 'out_dict'}
   else:
     return sb_out
 
@@ -258,10 +249,8 @@ def human_cochleagram(signal, sr, n=None, low_lim=50, hi_lim=20000,
   """
   if n is None:
     n = int(np.floor(erb.freq2erb(hi_lim) - erb.freq2erb(low_lim)) - 1)
-  out = cochleagram(signal, sr, n, low_lim, hi_lim, sample_factor, padding_size,
+  return cochleagram(signal, sr, n, low_lim, hi_lim, sample_factor, padding_size,
       downsample, nonlinearity, fft_mode, ret_mode, strict, **kwargs)
-
-  return out
 
 
 def invert_cochleagram_with_filterbank(cochleagram, filters, sr, target_rms=100,

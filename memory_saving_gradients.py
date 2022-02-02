@@ -303,8 +303,7 @@ def tf_toposort(ts, within_ops=None):
     # only keep the tensors from our original list
     ts_sorted_lists = []
     for l in sorted_ts:
-        keep = list(set(l).intersection(ts))
-        if keep:
+        if keep := list(set(l).intersection(ts)):
             ts_sorted_lists.append(keep)
 
     return ts_sorted_lists
@@ -332,9 +331,7 @@ def capture_ops():
   op_list.extend(ge.select_ops(scope_name+"/.*", graph=g))
 
 def _to_op(tensor_or_op):
-  if hasattr(tensor_or_op, "op"):
-    return tensor_or_op.op
-  return tensor_or_op
+    return tensor_or_op.op if hasattr(tensor_or_op, "op") else tensor_or_op
 
 def _to_ops(iterable):
   if not _is_iterable(iterable):
@@ -361,16 +358,15 @@ def debug_print(s, *args):
     print("DEBUG "+s % tuple(formatted_args))
 
 def format_ops(ops, sort_outputs=True):
-  """Helper method for printing ops. Converts Tensor/Operation op to op.name,
+    """Helper method for printing ops. Converts Tensor/Operation op to op.name,
   rest to str(op)."""
     
-  if hasattr(ops, '__iter__') and not isinstance(ops, str):
+    if not hasattr(ops, '__iter__') or isinstance(ops, str):
+        return ops.name if hasattr(ops, "name") else str(ops)
     l = [(op.name if hasattr(op, "name") else str(op)) for op in ops]
     if sort_outputs:
       return sorted(l)
     return l
-  else:
-    return ops.name if hasattr(ops, "name") else str(ops)
 
 def my_add_control_inputs(wait_to_do_ops, inputs_to_do_before):
     for op in wait_to_do_ops:

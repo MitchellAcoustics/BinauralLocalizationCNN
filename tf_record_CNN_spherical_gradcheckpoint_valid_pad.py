@@ -117,7 +117,7 @@ def tf_record_CNN_spherical(tone_version,itd_tones,ild_tones,manually_added,freq
     #mean_subbands = np.load("mean_subband_51400.npy")/51400
     #tf_mean_subbands = tf.constant(mean_subbands,dtype=filter_dtype)
     def check_speed():
-        for i in range(30):
+        for _ in range(30):
             sess.run(subbands_batch)
         start_time = time.time()
         for _ in range(30):
@@ -141,15 +141,14 @@ def tf_record_CNN_spherical(tone_version,itd_tones,ild_tones,manually_added,freq
 
         def combine_signal_and_noise_stacked_channel(signals,backgrounds,delay,
                                                      sr,cochleagram_sr,post_rectify):
-            tensor_dict_fg = {}
-            tensor_dict_bkgd = {}
-            tensor_dict = {}
             snr = tf.random_uniform([],minval=SNR_min,maxval=SNR_max,name="snr_gen")
+            tensor_dict_bkgd = {}
             for path1 in backgrounds:
                 if path1 == 'train/image':
                     background = backgrounds['train/image']
                 else:
                     tensor_dict_bkgd[path1] = backgrounds[path1]
+            tensor_dict_fg = {}
             for path in signals:
                 if path == 'train/image':
                     signal = signals['train/image']
@@ -184,21 +183,18 @@ def tf_record_CNN_spherical(tone_version,itd_tones,ild_tones,manually_added,freq
                     tensor_dict_fg[path] = new_sig_reshaped
                 else:
                     tensor_dict_fg[path] = signals[path]
-            tensor_dict[0] = tensor_dict_fg
-            tensor_dict[1] = tensor_dict_bkgd
-            return tensor_dict
+            return {0: tensor_dict_fg, 1: tensor_dict_bkgd}
 
         def combine_signal_and_noise(signals,backgrounds,delay,
                                      sr,cochleagram_sr,post_rectify):
-            tensor_dict_fg = {}
-            tensor_dict_bkgd = {}
-            tensor_dict = {}
             snr = tf.random_uniform([],minval=SNR_min,maxval=SNR_max,name="snr_gen")
+            tensor_dict_bkgd = {}
             for path1 in backgrounds:
                 if path1 == 'train/image':
                     background = backgrounds['train/image']
                 else:
                     tensor_dict_bkgd[path1] = backgrounds[path1]
+            tensor_dict_fg = {}
             for path in signals:
                 if path == 'train/image':
                     signal = signals['train/image']
@@ -232,9 +228,7 @@ def tf_record_CNN_spherical(tone_version,itd_tones,ild_tones,manually_added,freq
                     tensor_dict_fg[path] = new_sig_reshaped
                 else:
                     tensor_dict_fg[path] = signals[path]
-            tensor_dict[0] = tensor_dict_fg
-            tensor_dict[1] = tensor_dict_bkgd
-            return tensor_dict
+            return {0: tensor_dict_fg, 1: tensor_dict_bkgd}
 
         #Best to read https://www.tensorflow.org/api_guides/python/reading_data#Reading_from_files
         ###READING QUEUE MACHINERY###
@@ -453,10 +447,9 @@ def tf_record_CNN_spherical(tone_version,itd_tones,ild_tones,manually_added,freq
         when training with float16.
         """
 
-        grads = [(grad[0] / loss_scale,grad[1]) for grad in
+        return [(grad[0] / loss_scale,grad[1]) for grad in
                  tf.train.AdamOptimizer(learning_rate=learning_rate,epsilon=1e-4).
                  compute_gradients(loss * loss_scale,colocate_gradients_with_ops=True)]
-        return grads
 
     def float32_variable_storage_getter(getter, name, shape=None, dtype=None,
                                         initializer=tf.contrib.layers.xavier_initializer(uniform=False),

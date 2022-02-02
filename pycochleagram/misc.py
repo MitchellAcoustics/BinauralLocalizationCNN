@@ -311,9 +311,9 @@ def queued_generator_helper(output_queue, data_src, callback_fx, num_epochs, bat
 
 def queued_generator(data_src, callback_fx, num_epochs, batch_size, num_workers, extra_data_src_list=[], queue_prewait_seconds=0):
   # sanity check data_src shapes
-  if len(extra_data_src_list) > 0:
-    if not all([len(d) == len(data_src) for d in extra_data_src_list]):
-      raise ValueError('All data sources must have the same length')
+  if len(extra_data_src_list) > 0 and any(
+      len(d) != len(data_src) for d in extra_data_src_list):
+    raise ValueError('All data sources must have the same length')
 
   num_inputs = len(data_src)
   batches_per_epoch = ceil(num_inputs / batch_size)
@@ -406,7 +406,7 @@ def francl_main():
   n_per_batch = 40
   gx = run_francl_test('/Users/raygon/Desktop/mdLab/projects/public/cochleagram/sandbox/francl_testStimOnTheFlyCgramGeneration', n_per_batch=n_per_batch, num_workers=8)
   start_time = time.time()
-  [next(gx) for x in gx]
+  [next(gx) for _ in gx]
   total_time = time.time() -  start_time
   print('total time: %s > %s s/cgram' % (total_time, total_time / (num_epochs * n_per_batch)))
 

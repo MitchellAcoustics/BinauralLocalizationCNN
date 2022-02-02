@@ -39,7 +39,7 @@ def test_erb_filters(rfn, mode='all', verbose=0):
         print('<Input Params: signal_length: %s, sr: %s, N: %s, low_lim: %s, hi_lim: %s, sample_factor: %s>' %
               (signal_length, sr, N, low_lim, hi_lim, sample_factor))
 
-      if mode == 'all' or mode == 'nx':
+      if mode in ['all', 'nx']:
         # test make_erb_cos_filters_nx
         filts, hz_cutoffs, freqs = erb.make_erb_cos_filters_nx(signal_length, sr, N,
                                                                low_lim, hi_lim, sample_factor,
@@ -50,7 +50,7 @@ def test_erb_filters(rfn, mode='all', verbose=0):
         if verbose > 0:
           print('PASSED: make_erb_cos_filters_nx(%s)' % sample_factor)
 
-      if mode == 'all' or mode == 'matlab':
+      if mode in ['all', 'matlab']:
         # test convenience function (i.e., the matlab api)
         matlab_api_fx = matlab_api_fx_list[i]
         filts, hz_cutoffs, freqs = matlab_api_fx(signal_length, sr, N, low_lim, hi_lim)
@@ -60,15 +60,13 @@ def test_erb_filters(rfn, mode='all', verbose=0):
         if verbose > 0:
           print('PASSED: %s' % matlab_api_fx.__name__)
 
-      if mode == 'all' or mode == 'literal':
-        # test the literal port of 1x
-        if sample_factor == 1:
-          filts, hz_cutoffs, freqs = erb.make_erb_cos_filters(signal_length, sr, N, low_lim, hi_lim)
-          assert np.allclose(filts, mlab[filts_key]), 'filts mismatch: make_erb_cos_filters(...) (literal)'
-          assert np.allclose(freqs, mlab[freqs_key]), 'Freqs mismatch: make_erb_cos_filters(...) (literal)'
-          assert np.allclose(hz_cutoffs, mlab[hz_cutoffs_key]), 'Hz_cutoff mismatch: make_erb_cos_filters(...) (literal)'
-          if verbose > 0:
-            print('PASSED: make_erb_cos_filters (literal)')
+      if mode in ['all', 'literal'] and sample_factor == 1:
+        filts, hz_cutoffs, freqs = erb.make_erb_cos_filters(signal_length, sr, N, low_lim, hi_lim)
+        assert np.allclose(filts, mlab[filts_key]), 'filts mismatch: make_erb_cos_filters(...) (literal)'
+        assert np.allclose(freqs, mlab[freqs_key]), 'Freqs mismatch: make_erb_cos_filters(...) (literal)'
+        assert np.allclose(hz_cutoffs, mlab[hz_cutoffs_key]), 'Hz_cutoff mismatch: make_erb_cos_filters(...) (literal)'
+        if verbose > 0:
+          print('PASSED: make_erb_cos_filters (literal)')
   except AssertionError as e:
     print('FAILED')
     print('<Input Params: signal_length: %s, sr: %s, N: %s, low_lim: %s, hi_lim: %s, sample_factor: %s>' %

@@ -70,11 +70,10 @@ def build_tfrecords_iterator(num_epochs, train_path_pattern, is_bkgd, feature_pa
         input_tensor_dict = {}
         #for path in sorted(feature_parsing_dict.keys()):
         for path in feature_parsing_dict.keys():
-            if is_bkgd is True and (path =='train/azim' or path == 'train/elev'):
-                path_dtype = feature_parsing_dict[path].dtype
+            path_dtype = feature_parsing_dict[path].dtype
+            if is_bkgd is True and path in ['train/azim', 'train/elev']:
                 input_tensor_dict[path] = parsed_features[path]
             else:    
-                path_dtype = feature_parsing_dict[path].dtype
                 path_shape = feature_parsing_dict[path].shape
                 if path =='train/image':
 #                if len(path_shape) > 0: # Array-like features are read-in as bytes and must be decoded
@@ -90,7 +89,7 @@ def build_tfrecords_iterator(num_epochs, train_path_pattern, is_bkgd, feature_pa
                     input_tensor_dict[path] = tf.reshape(decoded_bytes_feature, STIM_SIZE)
                 else:
                     input_tensor_dict[path] = parsed_features[path]
-        
+
         label_div_const = tf.constant([localization_bin_resolution])
         for elem in input_tensor_dict:
             if elem != 'train/image':
@@ -111,7 +110,7 @@ def build_tfrecords_iterator(num_epochs, train_path_pattern, is_bkgd, feature_pa
                     else:
                         v = tf.cast(input_tensor_dict[elem], tf.int32)
                         input_tensor_dict[elem] = v
-        
+
         if stacked_channel:
             images = tf.slice(input_tensor_dict['train/image'],[0,0,0],[39,48000,2])
         else:

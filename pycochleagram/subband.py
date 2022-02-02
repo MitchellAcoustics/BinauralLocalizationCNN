@@ -30,10 +30,8 @@ def reshape_signal_canonical(signal):
   """
   if signal.ndim == 1:  # signal is a flattened array
     out_signal = signal
-  elif signal.ndim == 2:  # signal is a row or column vector
-    if signal.shape[0] == 1:
-      out_signal = signal.flatten()
-    elif signal.shape[1] == 1:
+  elif signal.ndim == 2:# signal is a row or column vector
+    if signal.shape[0] == 1 or signal.shape[1] == 1:
       out_signal = signal.flatten()
     else:
       raise ValueError('signal must be a row or column vector; found shape: %s' % signal.shape)
@@ -63,13 +61,11 @@ def reshape_signal_batch(signal):
   """
   if signal.ndim == 1:  # signal is a flattened array
     out_signal = signal.reshape((1, -1))
-  elif signal.ndim == 2:  # signal is a row or column vector
-    if signal.shape[0] == 1:
+  elif signal.ndim == 2:# signal is a row or column vector
+    if signal.shape[0] == 1 or signal.shape[1] != 1:
       out_signal = signal
-    elif signal.shape[1] == 1:
+    else:
       out_signal = signal.reshape((1, -1))
-    else:  # first dim is batch dim
-      out_signal = signal
   else:
     raise ValueError('signal should be flat array, row or column vector, or a 2D matrix with dimensions [batch, waveform]; found %s' % signal.ndim)
   return out_signal
@@ -138,12 +134,7 @@ def generate_subband_envelopes_fast(signal, filters, padding_size=None, fft_mode
     subband_envelopes = subband_envelopes[:, :signal_flat.shape[0] - padding]  # i dont know if this is correct
 
   if debug_ret_all is True:
-    out_dict = {}
-    # add all local variables to out_dict
-    for k in dir():
-      if k != 'out_dict':
-        out_dict[k] = locals()[k]
-    return out_dict
+    return {k: locals()[k] for k in dir() if k != 'out_dict'}
   else:
     return subband_envelopes
 
@@ -207,12 +198,7 @@ def generate_subbands(signal, filters, padding_size=None, fft_mode='auto', debug
     subbands = subbands[:, :signal_flat.shape[0] - padding]  # i dont know if this is correct
 
   if debug_ret_all is True:
-    out_dict = {}
-    # add all local variables to out_dict
-    for k in dir():
-      if k != 'out_dict':
-        out_dict[k] = locals()[k]
-    return out_dict
+    return {k: locals()[k] for k in dir() if k != 'out_dict'}
   else:
     return subbands
 
@@ -293,12 +279,7 @@ def generate_subband_envelopes(signal, filters, padding_size=None, debug_ret_all
   subband_envelopes = np.abs(analytic_subbands)
 
   if debug_ret_all is True:
-    out_dict = {}
-    # add all local variables to out_dict
-    for k in dir():
-      if k != 'out_dict':
-        out_dict[k] = locals()[k]
-    return out_dict
+    return {k: locals()[k] for k in dir() if k != 'out_dict'}
   else:
     return subband_envelopes
 
@@ -323,8 +304,7 @@ def collapse_subbands(subbands, filters, fft_mode='auto'):
   fft_subbands = filters * utils.fft(subbands, mode=fft_mode)
   # subbands = utils.ifft(fft_subbands)
   subbands = np.real(utils.ifft(fft_subbands, mode=fft_mode))
-  signal = subbands.sum(axis=0)
-  return signal
+  return subbands.sum(axis=0)
 
 
 def pad_signal(signal, padding_size, axis=0):
@@ -356,5 +336,4 @@ def _real_freq_filter(rfft_signal, filters):
   """Helper function to apply a full filterbank to a rfft signal
   """
   nr = rfft_signal.shape[0]
-  subbands = filters[:, :nr] * rfft_signal
-  return subbands
+  return filters[:, :nr] * rfft_signal

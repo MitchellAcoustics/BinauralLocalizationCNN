@@ -14,12 +14,12 @@ def parse_nested_dictionary(jsdict,is_bkgd):
         for x in key1:
             key2 = v[x].keys()
             for y in key2:
-                if y == 'int64List':
-                    dtype = tf.int64
-                elif y == 'bytesList':
+                if y == 'bytesList':
                     dtype = tf.string
                 elif y == 'floatList':
                     dtype = tf.float32
+                elif y == 'int64List':
+                    dtype = tf.int64
 #                if x == 'train/image':
 #                    dtype_image = dtype
 #                else:
@@ -33,7 +33,7 @@ def parse_nested_dictionary(jsdict,is_bkgd):
 #                            width = int(z[0])
                 feature_len = len(v[x][y]['value'])
                 shape = [] if feature_len == 1 else [feature_len]
-                if is_bkgd is True and (x == 'train/azim' or x == 'train/elev'):
+                if is_bkgd is True and x in ['train/azim', 'train/elev']:
                     feature[x] = tf.VarLenFeature(dtype)
                 else:
                     feature[x] = tf.FixedLenFeature(shape,dtype)

@@ -14,11 +14,8 @@ def allvars_filtered(offset=0):
     frame = sys._getframe(1+offset)
     d = frame.f_globals
     d.update(frame.f_locals)
-    #Filters out all modules and functions so the output can be serialized to a
-    #JSON
-    filtered = {key:value for key, value in d.items() if not callable(value) and
+    return {key:value for key, value in d.items() if not callable(value) and
                not isinstance(value, ModuleType) and '__loader__' not in key}
-    return filtered
 
 tone_version=False
 itd_tones=False
@@ -36,7 +33,7 @@ num_epochs=None
 #bkgd_train_path_pattern = '/om/scratch/Sat/francl/bkgdRecords_textures_sparse_sampled_same_texture_expanded_set_44.1kHz_stackedCH_upsampled/train*.tfrecords'
 #train_path_pattern ='/nobackup/scratch/Sat/francl/stimRecords_convolved_oldHRIRdist140_no_hanning_stackedCH_upsampled/testset/train*.tfrecords'
 
-str2bool = lambda x: True if x == "True" else False
+str2bool = lambda x: x == "True"
 
 arch_ID=int(sys.argv[1])
 init = int(sys.argv[2])

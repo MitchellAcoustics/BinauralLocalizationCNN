@@ -14,14 +14,11 @@ from pycochleagram import erbfilter as erb
 from pycochleagram import utils
 
 
-if utils.check_if_display_exists():
-  import matplotlib.pyplot as plt
-  from matplotlib.pyplot import imshow, show
-else:
+if not utils.check_if_display_exists():
   import matplotlib
   matplotlib.use('Agg')
-  import matplotlib.pyplot as plt
-  from matplotlib.pyplot import imshow, show
+import matplotlib.pyplot as plt
+from matplotlib.pyplot import imshow, show
 
 
 ### Cochleagram Generation from Waveform ###
@@ -160,8 +157,7 @@ def demo_human_cochleagram_helper(signal, sr, n, sample_factor=2, downsample=Non
   """
   human_coch = cgram.human_cochleagram(signal, sr, n=n, sample_factor=sample_factor,
       downsample=downsample, nonlinearity=nonlinearity, strict=False)
-  img = np.flipud(human_coch)  # the cochleagram is upside down (i.e., in image coordinates)
-  return img
+  return np.flipud(human_coch)
 
 
 ### Waveform Generation from Cochleagram (Inversion) ###
@@ -320,8 +316,8 @@ def main(ignore_playback_warning=False, mode='rand_sound'):
     None
   """
   mode = mode.lower()
-  DEMO_PATH = '/Users/raygon/Desktop/mdLab/projects/public/pycochleagram/pycochleagram/demo_stim/'
   if mode == 'rand_sound':
+    DEMO_PATH = '/Users/raygon/Desktop/mdLab/projects/public/pycochleagram/pycochleagram/demo_stim/'
     rfn = choice([os.path.join(DEMO_PATH, f)for f in os.listdir(DEMO_PATH) if f.endswith('.wav')])
     print(os.listdir(DEMO_PATH))
     # rfn = [os.path.join(DEMO_PATH, f)for f in os.listdir(DEMO_PATH)][1]

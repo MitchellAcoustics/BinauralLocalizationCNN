@@ -89,8 +89,7 @@ def combine_signal_and_noise(signal, noise, snr):
   sf = np.power(10, snr / 20)
   signal_rms = rms(signal)
   noise = noise * ((signal_rms / rms(noise)) / sf)
-  signal_and_noise = signal + noise
-  return signal_and_noise
+  return signal + noise
 
 
 def rms(a, strict=True):
@@ -159,10 +158,7 @@ def get_channels(snd_array):
     int:
     **n_channels**: The number of channels in the input array.
   """
-  n_channels = 1
-  if snd_array.ndim > 1:
-    n_channels = snd_array.shape[1]
-  return n_channels
+  return snd_array.shape[1] if snd_array.ndim > 1 else 1
 
 
 def rescale_sound(snd_array, rescale):
@@ -584,9 +580,8 @@ def _parse_fft_mode(mode, params):
       mode = 'np'
       if params is None:
         params = {}
-  else:
-    if params is None:
-      params = {}
+  elif params is None:
+    params = {}
   return mode, params
 
 

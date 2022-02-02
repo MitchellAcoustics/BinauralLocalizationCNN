@@ -42,8 +42,8 @@ def test_subbands(rfn, erb_filter_mode='all', verbose=0):
   matlab_api_fx_list = [erb.make_erb_cos_filters_1x, erb.make_erb_cos_filters_2x, erb.make_erb_cos_filters_4x]
   # use 1x, 2x, and 4x oversampling to test make_erb_cos_filters_nx
   try:
-    for i in range(len(sample_factor_list)):
-      sample_factor = sample_factor_list[i]
+    for samplefactor in sample_factor_list:
+      sample_factor = samplefactor
 
       # get keynames for looking up matlab reference values
       freqs_key = 'freqs_%s' % sample_factor
@@ -56,7 +56,7 @@ def test_subbands(rfn, erb_filter_mode='all', verbose=0):
         print('<Input Params: signal_length: %s, sr: %s, N: %s, low_lim: %s, hi_lim: %s, sample_factor: %s>' %
               (signal_length, sr, N, low_lim, hi_lim, sample_factor))
 
-      if mode == 'all' or mode == 'nx':
+      if mode in ['all', 'nx']:
         if verbose > 1:
           print('making erb filters')
         # test make_erb_cos_filters_nx
@@ -125,8 +125,8 @@ def test_cochleagram(rfn, erb_filter_mode='all', coch_mode='fast',verbose=0):
   sample_factor_list = [1, 2, 4]
   # use 1x, 2x, and 4x oversampling to test make_erb_cos_filters_nx
   try:
-    for i in range(len(sample_factor_list)):
-      sample_factor = sample_factor_list[i]
+    for samplefactor in sample_factor_list:
+      sample_factor = samplefactor
 
       # get keynames for looking up matlab reference values
       freqs_key = 'freqs_%s' % sample_factor
@@ -138,7 +138,7 @@ def test_cochleagram(rfn, erb_filter_mode='all', coch_mode='fast',verbose=0):
         print('<Input Params: signal_length: %s, sr: %s, N: %s, low_lim: %s, hi_lim: %s, sample_factor: %s>' %
               (signal_length, sr, N, low_lim, hi_lim, sample_factor))
 
-      if erb_filter_mode == 'all' or erb_filter_mode == 'nx':
+      if erb_filter_mode in ['all', 'nx']:
         if coch_mode == 'coch':
           sub_envs_key = 'sub_envs_%s' % sample_factor
           coch = cgram.human_cochleagram(signal, sr, N, low_lim, hi_lim, sample_factor, pad_factor=1, strict=False)
@@ -206,7 +206,7 @@ def _get_coch_function(mode):
     coch_fx = sb.generate_subband_envelopes_alex_fast
   elif mode == 'standard':
     coch_fx = sb.generate_subband_envelopes
-  elif mode == 'subband' or mode == 'coch':
+  elif mode in ['subband', 'coch']:
     coch_fx = None
   else:
     raise ValueError('Unrecognized coch_fx mode: %s' % mode)

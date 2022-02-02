@@ -86,30 +86,28 @@ def reshape_and_filter(temp_array,label_order):
         #This deals with testsets metadata still in tuples because vstack
         #dealts with things incorrectly if all elements are arrays
         metadata = np.array(pd.DataFrame({"meta":temp_array[:,1]})['meta']
-                            .apply(lambda x:tuple([m[0] for m in x])).tolist())
+                            .apply(lambda x: tuple(m[0] for m in x)).tolist())
     else:
         metadata = np.vstack(temp_array[:,1])
-    if len(label_order) != 0:
-        target_slice_arr = []
-        src_slice_arr = []
-        for src_idx,target_idx in enumerate(label_order):
-            if target_idx is not None:
-                target_slice_arr.append(target_idx)
-                src_slice_arr.append(src_idx)
-        slice_array = [idx for idx in label_order if idx is not None]
-        metadata_new = np.empty((metadata.shape[0],len(src_slice_arr)),
-                                dtype=metadata.dtype)
-        metadata_new[:,target_slice_arr] = metadata[:,src_slice_arr]
-        array = np.array([[prob,*labels] for prob,labels in zip(prob,metadata_new)])
-    else:
-        array = temp_array
-    return array
+    if len(label_order) == 0:
+        return temp_array
+    target_slice_arr = []
+    src_slice_arr = []
+    for src_idx,target_idx in enumerate(label_order):
+        if target_idx is not None:
+            target_slice_arr.append(target_idx)
+            src_slice_arr.append(src_idx)
+    slice_array = [idx for idx in label_order if idx is not None]
+    metadata_new = np.empty((metadata.shape[0],len(src_slice_arr)),
+                            dtype=metadata.dtype)
+    metadata_new[:,target_slice_arr] = metadata[:,src_slice_arr]
+    return np.array([[prob,*labels] for prob,labels in zip(prob,metadata_new)])
 
 def add_fold_offset(row):
     if 'azim' in row:
         if (18 < row['azim'] < 54):
             return abs(row['predicted_folded'] + 18)
-        elif row['azim'] == 18 or row['azim'] == 54:
+        elif row['azim'] in [18, 54]:
             return row['predicted']
         else:
             return (18 -row['predicted_folded'])%72
@@ -125,10 +123,7 @@ def add_fold_offset(row):
 
 def swap_folded_vals(folded_vals,row):
     pdb.set_trace()
-    if row['azim'] == 18 or row['azim'] == 54:
-        return row['predicted']
-    else:
-        return folded_vals[row.name] 
+    return row['predicted'] if row['azim'] in [18, 54] else folded_vals[row.name] 
 
 def make_dataframe(regex,fold_data=False,elevation_predictions=False):
     np_data_array = getDatafilenames(regex)
@@ -143,7 +138,7 @@ def make_dataframe(regex,fold_data=False,elevation_predictions=False):
         pred = np.array([x[:72] for x in np_data[:,0]]).argmax(axis=1)
         folded_vals = np.array([fold_locations_full_dist_5deg(x[:72]) for x in np_data[:,0]]).argmax(axis=1)
         if elevation_predictions:
-            full_pred = np.array([x for x in np_data[:,0]]).argmax(axis=1)
+            full_pred = np.array(list(np_data[:,0])).argmax(axis=1)
             np_data[:,0] = full_pred
         else:
             np_data[:,0] = pred
@@ -178,41 +173,37 @@ def get_arch_indicies(regex):
 
 def get_cols(regex):
     if "joint" in regex:
-        var_order = ["azim" , "elev",
+        return ["azim" , "elev",
                      "ITD", "ILD", "freq"]
     elif "man-added" in regex:
-        var_order = ["azim","freq"]
-        if "ITD_ILD" in regex:
-            var_order = ["azim","elev","freq"]
+        return ["azim","elev","freq"] if "ITD_ILD" in regex else ["azim","freq"]
     elif "CIPIC" in regex:
-        var_order = ["azim", "elev", "subject", "noise_idx"]
+        return ["azim", "elev", "subject", "noise_idx"]
     elif "samTone" in regex:
-        var_order = ["carrier_freq", "modulation_freq",
+        return ["carrier_freq", "modulation_freq",
                      "carrier_delay", "modulation_delay",
                      "flipped"]
     elif "transposed" in regex:
-        var_order = ["carrier_freq", "modulation_freq",
+        return ["carrier_freq", "modulation_freq",
                      "delay", "flipped"]
     elif "precedence" in regex:
-        var_order = ["delay","start_sample",
+        return ["delay","start_sample",
                      "lead_level","lag_level", "flipped"]
     elif "bandpass" in regex:
-        var_order = ["azim","elev", "bandwidth",
+        return ["azim","elev", "bandwidth",
                      "center_freq"]
     elif ("binaural_recorded" in regex) and ("speech_label" in regex):
-        var_order = ["azim", "elev","speech"]
+        return ["azim", "elev","speech"]
     elif "binaural_recorded" in regex:
-        var_order = ["azim", "elev"]
+        return ["azim", "elev"]
     else:
-        var_order = ["azim","freq"]
-    return var_order
+        return ["azim","freq"]
         
 
 def get_order(regex,data):
     var_order = get_cols(regex)
-    key_swap_indicies = [next((idx for idx,pos in enumerate(var_order) if pos in key), None)
+    return [next((idx for idx,pos in enumerate(var_order) if pos in key), None)
                          for key in data]
-    return key_swap_indicies
 
 
 
@@ -255,7 +246,7 @@ def add_fold_offset_df(row):
     if 'azim' in row:
         if (18 < row['azim'] < 54):
             return abs(row['predicted_folded'] + 18)
-        elif row['azim'] == 18 or row['azim'] == 54:
+        elif row['azim'] in [18, 54]:
             return row['predicted']
         else:
             return (18 -row['predicted_folded'])%72
@@ -281,7 +272,7 @@ for azim in range(0,360,30):
                       signal in stim])
 
         algo_names = ['SRP', 'MUSIC', 'TOPS','CSSM','WAVES']
-        spatial_resp = dict()
+        spatial_resp = {}
 
         microphone = np.array([[0-(mic_offset*0.01)/2.0, 0],[0+(mic_offset*0.01)/2.0, 0]]).T
         # loop through algos
@@ -292,13 +283,13 @@ for azim in range(0,360,30):
 
             # this call here perform localization on the frames in X
             doa.locate_sources(X, freq_range=freq_range)
-            
+
             # store spatial response
             if algo_name is 'FRIDA':
                 spatial_resp[algo_name] = np.abs(doa._gen_dirty_img())
             else:
                 spatial_resp[algo_name] = doa.grid.values
-                
+
             # normalize   
             min_val = spatial_resp[algo_name].min()
             max_val = spatial_resp[algo_name].max()
@@ -330,7 +321,7 @@ def run_at_azim(azim):
                       signal in stim])
 
         algo_names = ['SRP', 'MUSIC', 'TOPS','CSSM','WAVES']
-        spatial_resp = dict()
+        spatial_resp = {}
 
         microphone = np.array([[0-(mic_offset*0.01)/2.0, 0],[0+(mic_offset*0.01)/2.0, 0]]).T
         # loop through algos
@@ -341,13 +332,13 @@ def run_at_azim(azim):
 
             # this call here perform localization on the frames in X
             doa.locate_sources(X, freq_range=freq_range)
-            
+
             # store spatial response
             if algo_name is 'FRIDA':
                 spatial_resp[algo_name] = np.abs(doa._gen_dirty_img())
             else:
                 spatial_resp[algo_name] = doa.grid.values
-                
+
             # normalize   
             min_val = spatial_resp[algo_name].min()
             max_val = spatial_resp[algo_name].max()
@@ -402,9 +393,9 @@ def get_error_per_mic_offset(df_error_all_conditions):
 def get_errror(pd_localization_results):
     error = lambda x, y: min(72-(abs(x-y)),abs(x-y))
     df = pd.DataFrame(columns=["azim","algorithm","rms_folded","rms"])
+    algo_names = ['SRP', 'MUSIC', 'TOPS','CSSM','WAVES']
     for azim in range(0,360,30):
         azim_binned = azim/5
-        algo_names = ['SRP', 'MUSIC', 'TOPS','CSSM','WAVES']
         for algo_name in algo_names:
             query_string = 'algorithm == "{}" & azim == {}'.format(algo_name,
                                                                    int(azim_binned))
@@ -425,11 +416,11 @@ def get_errror(pd_localization_results):
 def get_error_cnn(pd_localization_results):
     error = lambda x, y: min(72-(abs(x-y)),abs(x-y))
     df = pd.DataFrame(columns=["azim","algorithm","rms_folded","rms","arch_index"])
-    arch_index_set = pd_localization_results["arch_index"].unique()    
+    arch_index_set = pd_localization_results["arch_index"].unique()
+    algo_names = ['CNN (Ours)']
     for arch_index in arch_index_set:
         for azim in range(0,360,30):
             azim_binned = azim/5
-            algo_names = ['CNN (Ours)']
             for algo_name in algo_names:
                 query_string = 'algorithm == "{}" & azim == {} & arch_index == {}'.format(algo_name,
                                                                        int(azim_binned),int(arch_index))
@@ -459,9 +450,9 @@ def make_azim_vs_folded_rms_plot(df_rms):
     sns.lineplot(x="Azimuth (Degrees)", y="Folded RMS (Degrees)", hue="DOA Algorithm", style="DOA Algorithm", data=df_rms)
     
 def count_front_back_mistakes(pd_localization_results):
-    is_mistake = lambda azim_binned,pred_loc : True if ((18 < azim_binned < 54)
+    is_mistake = lambda azim_binned,pred_loc: ((18 < azim_binned < 54)
                                                 != (18 < pred_loc < 54) and 
-                                                (azim_binned not in [18,54])) else False
+                                                (azim_binned not in [18,54]))
     df = pd.DataFrame(columns=["azim","algorithm","front_back_mistakes","total_predictions"])
     for azim in range(0,360,30):
         azim_binned = azim/5
@@ -472,10 +463,10 @@ def count_front_back_mistakes(pd_localization_results):
             query_string = 'algorithm == "{}" & azim == {}'.format(algo_name,
                                                                    int(azim_binned))
             prediction_counts = dict(pd_localization_results.query(query_string)['predicted'].value_counts())
-            front_back_mistakes =  sum([v for k,v in
-                                        prediction_counts.items() if
-                                        is_mistake(azim_binned,k)])
-            total_count = sum([v for k,v in prediction_counts.items()])
+            front_back_mistakes = sum(v for k,v in
+                                                    prediction_counts.items() if
+                                                    is_mistake(azim_binned,k))
+            total_count = sum(v for k,v in prediction_counts.items())
             df = df.append({
                     "front_back_mistakes": front_back_mistakes,
                     "azim": azim_binned,
@@ -565,14 +556,11 @@ def get_folded_label_idx_5deg(azim_label):
         reversal_point = round(math.degrees(math.acos(-math.cos(math.radians((azim_degrees+azim_degrees//180*180)%360))))+azim_degrees//180*180)
     else:
         reversal_point =  azim_degrees
-    #folded = fold_locations(averages)
-    reversal_idx = int((reversal_point - 90)/5)
-    return reversal_idx
+    return int((reversal_point - 90)/5)
 
 def CIPIC_azim_folding(azim):
     folded_idx= get_folded_label_idx_5deg(azim)
-    folded_degrees = 90-folded_idx*5
-    return folded_degrees
+    return 90-folded_idx*5
 
 convert_from_numpy = lambda x: x[0] if len(x.tolist()) ==1 else x.tolist()
 
@@ -580,7 +568,7 @@ def get_algorithm_error(pd_data):
     #load data and set algorithms, conacat arrays, use this function
     pd_data = pd_data.convert_objects(convert_numeric=True)
     error = lambda x: min(72-(abs(x['azim']-x['predicted_folded'])),abs(x['azim']-x['predicted_folded']))
-    if pd_data['azim'].dtype != 'int64' and pd_data['azim'].dtype != 'float64':
+    if pd_data['azim'].dtype not in ['int64', 'float64']:
         pd_data['azim'] = pd_data['azim'].apply(convert_from_numpy)
         pd_data['elev'] = pd_data['elev'].apply(convert_from_numpy)
     if 'DOA Algorithm' not in pd_data.columns:
@@ -599,9 +587,9 @@ def get_algorithm_error(pd_data):
     return pd_data
 
 def get_algorithm_front_back_error(pd_data):
-    is_mistake = lambda row: True if ((17 < row['azim'] < 54)
+    is_mistake = lambda row: ((17 < row['azim'] < 54)
                                     != (17 < row['predicted'] < 54) and 
-                                    (row['azim'] not in [17,54])) else False
+                                    (row['azim'] not in [17,54]))
     if 'DOA Algorithm' not in pd_data.columns:
         pd_data['front_back_error'] = pd_data.apply(is_mistake,axis=1)
         pd_data.rename(columns={'front_back_error':'Proportion of Front/Back Msitakes',
@@ -618,11 +606,10 @@ def get_algorithm_front_back_error(pd_data):
     plt.tight_layout()
 
 def get_bootstrap_dist(data_to_bootstrap,model_choices):
-    rmse_list = []
-    for model_idx in model_choices:
-        model_mean = sum([data_to_bootstrap[i] for i in model_idx])/len(model_idx)
-        rmse_list.append(model_mean)
-    return rmse_list
+    return [
+        sum(data_to_bootstrap[i] for i in model_idx) / len(model_idx)
+        for model_idx in model_choices
+    ]
 
 
 def fit_gaussian(bootstrap_data_null,sample_values):
@@ -634,8 +621,7 @@ def fit_gaussian(bootstrap_data_null,sample_values):
     p0 = [1., 0., 1.]
     coeff, var_matrix = curve_fit(gauss, bin_centres, hist, p0=p0)
     print(coeff)
-    p_values = 1- stats.norm.cdf(sample_values,loc=coeff[1],scale=coeff[2])
-    return p_values
+    return 1- stats.norm.cdf(sample_values,loc=coeff[1],scale=coeff[2])
 
 
 def gauss(x, *p):
